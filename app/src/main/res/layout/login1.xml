@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    android:background="#000000"
+    tools:context=".Login1">
+
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#fff"
+        android:hint="User Name"
+        android:textColor="#fff"
+        android:textColorHint="#fff"
+        android:layout_marginTop="50dp"/>
+
+    <EditText
+        android:id="@+id/password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Password"
+        android:textColorHint="#fff"
+        android:textColor="#fff"
+        android:backgroundTint="#fff"
+        android:layout_marginTop="50dp"
+        android:layout_below="@+id/username"/>
+
+    <EditText
+        android:id="@+id/repassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Retype Password"
+        android:textColorHint="#fff"
+        android:textColor="#fff"
+        android:backgroundTint="#fff"
+        android:layout_marginTop="50dp"
+        android:layout_below="@+id/password"/>
+
+    <Button
+        android:id="@+id/btnsignup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Register"
+        android:textStyle="bold"
+        android:textSize="19sp"
+        android:background="#3BBA9C"
+        android:layout_marginTop="50dp"
+        android:layout_below="@+id/repassword"/>
+
+    <Button
+        android:id="@+id/btnsignin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Existing user! Go to Sign in page"
+        android:textStyle="bold"
+        android:textSize="19sp"
+        android:background="#3BBA9C"
+        android:layout_marginTop="50dp"
+        android:layout_below="@+id/btnsignup"/>
+
+</RelativeLayout>

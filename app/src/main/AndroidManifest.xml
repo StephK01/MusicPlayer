@@ -18,6 +18,8 @@
         <activity
             android:name=".Player"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".Login1"></activity>
+        <activity android:name=".Login2"></activity>
         <activity android:name=".Splash_screen"
             android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>

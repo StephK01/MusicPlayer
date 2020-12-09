@@ -15,7 +15,7 @@ public class Splash_screen extends AppCompatActivity {
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                Intent intent1=new Intent(Splash_screen.this, MainActivity.class);
+                Intent intent1=new Intent(Splash_screen.this, Login1.class);
                 startActivity(intent1);
                 overridePendingTransition(R.anim.no_animation,R.anim.no_animation);
                 finish();
