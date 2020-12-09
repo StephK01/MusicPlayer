@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
@@ -47,6 +48,7 @@ public class Player extends AppCompatActivity {
         getIntentMethod();
         song_name.setText(songList.get(position).getTitle());
         artist_name.setText(songList.get(position).getArtist());
+
 
         heart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -105,7 +107,7 @@ public class Player extends AppCompatActivity {
         @Override
         public void run() {
             if (mediaPlayer.isPlaying()) {
-                Seek_bar.setProgress(mediaPlayer.getCurrentPosition());
+                //Seek_bar.setProgress(mediaPlayer.getCurrentPosition());
                 handler.postDelayed(this, 500);
                 duration_start.setText(formattedTime(mediaPlayer.getCurrentPosition()));
                 duration_end.setText(formattedTime(mediaPlayer.getDuration() - mediaPlayer.getCurrentPosition()));
@@ -162,8 +164,12 @@ public class Player extends AppCompatActivity {
                     play_pause.setImageResource(R.drawable.pause1);
                     initialiseMediaPlayer(true);
                 }
+                else if (mp != null && !isShuffleEnabled && isLoopEnabled) {
+                    Seek_bar.setProgress(0);
+                }
             }
         });
+
     }
 
     public int getPosition() {
