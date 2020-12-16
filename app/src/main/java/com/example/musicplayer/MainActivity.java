@@ -11,7 +11,9 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,21 +22,23 @@ import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import java.util.ArrayList;
-
 public class MainActivity extends AppCompatActivity {
 
     private static  final int MY_PERMISSION_REQUEST = 1;
-    static ArrayList<Music> arrayList;
     MusicAdapter adapter;
     ListView listView;
-    MediaPlayer mediaPlayer;
-
+    ImageView bar_play;
+    TextView Song;
+    TextView Artist;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        bar_play = (ImageView) findViewById(R.id.bar_play_pause);
+        Song = (TextView) findViewById(R.id.textView);
+        Artist = (TextView) findViewById(R.id.textView2);
 
         if(ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -44,6 +48,21 @@ public class MainActivity extends AppCompatActivity {
         else {
             doStuff();
         }
+
+        bar_play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1) {         //media player is paused
+                    Global.mediaPlayer.start();
+                    bar_play.setImageResource(R.drawable.pause1);
+                }
+                else{
+                    Global.mediaPlayer.pause();
+                    bar_play.setImageResource(R.drawable.play1);
+                }
+            }
+
+        });
     }
 
     @Override
@@ -53,9 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void doStuff() {
         listView = (ListView)findViewById(R.id.list_view);
-        arrayList = new ArrayList<>();
         getMusic();
-        adapter = new MusicAdapter(this,arrayList);
+        adapter = new MusicAdapter(this,Global.Song_List);
         listView.setAdapter(adapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -73,12 +91,14 @@ public class MainActivity extends AppCompatActivity {
 
         }
     );
+
+
     }
 
     public void getMusic() {
         ContentResolver contentResolver = getContentResolver();
         Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        Cursor songCursor = contentResolver.query(songUri, null, null, null, null);
+        Cursor songCursor = contentResolver.query(songUri, null, null, null, "TITLE ASC");
 
         if (songCursor != null && songCursor.moveToFirst()) {
             int songTitle = songCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
@@ -95,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 String currentDuration = songCursor.getString(songDuration);
                  Music music=new Music(currentData,currentTitle,currentArtist,currentAlbum,currentDuration );
 
-                arrayList.add(music);
+                Global.Song_List.add(music);
             }while (songCursor.moveToNext());
         }
     }
@@ -123,5 +143,25 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         finish();
         finishAffinity();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //mp_bar.setVisibility(View.VISIBLE);
+
+        Song.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
+        Artist.setText(Global.Song_List.get(Global.CurrentPosition).getArtist());
+
+        if(Global.mp_opened){
+            if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
+                bar_play.setImageResource(R.drawable.play1);
+            else
+                bar_play.setImageResource(R.drawable.pause1);
+        }
+        else
+            Toast.makeText(this, "Media Player is not playing", Toast.LENGTH_SHORT).show();
+
     }
 }

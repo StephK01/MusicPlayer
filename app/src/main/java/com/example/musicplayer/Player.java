@@ -8,8 +8,9 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.marcinmoskala.arcseekbar.ArcSeekBar;
@@ -17,7 +18,6 @@ import com.marcinmoskala.arcseekbar.ProgressListener;
 import java.util.ArrayList;
 import java.util.Random;
 
-import static com.example.musicplayer.MainActivity.arrayList;
 
 public class Player extends AppCompatActivity {
     TextView song_name, artist_name, duration_start, duration_end;
@@ -29,26 +29,26 @@ public class Player extends AppCompatActivity {
     ImageView play_pause;
     ImageView heart;
     ArcSeekBar Seek_bar;
-    static MediaPlayer mediaPlayer;
+    //static MediaPlayer Global.mediaPlayer;
     Thread playThread, prevThread, nextThread;
     Handler handler = new Handler();
     Uri uri;
     int position = -1;
-    boolean isShuffleEnabled = false;
-    boolean isLoopEnabled = false;
-    static ArrayList<Music> songList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.player_layout);
 
+        Global.mp_opened = true;
+        Toast.makeText(this, "mpopened status : "+ Global.mp_opened, Toast.LENGTH_SHORT).show();
+
+
         initialiseData();
 
         getIntentMethod();
-        song_name.setText(songList.get(position).getTitle());
-        artist_name.setText(songList.get(position).getArtist());
-
+        song_name.setText(Global.Song_List.get(position).getTitle());
+        artist_name.setText(Global.Song_List.get(position).getArtist());
 
         heart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -60,11 +60,11 @@ public class Player extends AppCompatActivity {
         shuffle_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isShuffleEnabled) {
-                    isShuffleEnabled = false;
+                if (Global.isShuffleEnabled) {
+                    Global.isShuffleEnabled = false;
                     shuffle_btn.setImageResource(R.drawable.shuffle);
                 } else {
-                    isShuffleEnabled = true;
+                    Global.isShuffleEnabled = true;
                     shuffle_btn.setImageResource(R.drawable.shuffle_on);
                 }
             }
@@ -73,18 +73,18 @@ public class Player extends AppCompatActivity {
         repeat_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isLoopEnabled) {
-                    isLoopEnabled = false;
+                if (Global.isLoopEnabled) {
+                    Global.isLoopEnabled = false;
                     repeat_btn.setImageResource(R.drawable.repeat);
-                    mediaPlayer.setLooping(false);
+                    Global.mediaPlayer.setLooping(false);
                 } else {
-                    if (!mediaPlayer.isPlaying()) {
-                        mediaPlayer.start();
+                    if (!Global.mediaPlayer.isPlaying()) {
+                        Global.mediaPlayer.start();
                         play_pause.setImageResource(R.drawable.pause1);
                     }
-                    isLoopEnabled = true;
+                    Global.isLoopEnabled = true;
                     repeat_btn.setImageResource(R.drawable.repeat_on);
-                    mediaPlayer.setLooping(true);
+                    Global.mediaPlayer.setLooping(true);
                 }
             }
         });
@@ -93,8 +93,8 @@ public class Player extends AppCompatActivity {
         Seek_bar.setOnProgressChangedListener(new ProgressListener() {
                                                   @Override
                                                   public void invoke(int progress) {
-                                                      if (mediaPlayer != null) {
-                                                          mediaPlayer.seekTo(progress);
+                                                      if (Global.mediaPlayer != null) {
+                                                          Global.mediaPlayer.seekTo(progress);
                                                       }
                                                   }
                                               }
@@ -106,11 +106,11 @@ public class Player extends AppCompatActivity {
     Runnable runnable = new Runnable() {
         @Override
         public void run() {
-            if (mediaPlayer.isPlaying()) {
-                //Seek_bar.setProgress(mediaPlayer.getCurrentPosition());
+            if (Global.mediaPlayer.isPlaying()) {
+                //Seek_bar.setProgress(Global.mediaPlayer.getCurrentPosition());
                 handler.postDelayed(this, 500);
-                duration_start.setText(formattedTime(mediaPlayer.getCurrentPosition()));
-                duration_end.setText(formattedTime(mediaPlayer.getDuration() - mediaPlayer.getCurrentPosition()));
+                duration_start.setText(formattedTime(Global.mediaPlayer.getCurrentPosition()));
+                duration_end.setText(formattedTime(Global.mediaPlayer.getDuration() - Global.mediaPlayer.getCurrentPosition()));
             }
         }
     };
@@ -129,54 +129,64 @@ public class Player extends AppCompatActivity {
         play_pause = (ImageView) findViewById(R.id.play_pause);
         heart = (ImageView) findViewById(R.id.heart);
         Seek_bar = (ArcSeekBar) findViewById(R.id.arc_seek_bar);
+
+        if (Global.isShuffleEnabled)
+            shuffle_btn.setImageResource(R.drawable.shuffle_on);
+        else
+            shuffle_btn.setImageResource(R.drawable.shuffle);
+
+        if (Global.isLoopEnabled)
+            repeat_btn.setImageResource(R.drawable.repeat_on);
+        else
+            repeat_btn.setImageResource(R.drawable.repeat);
+
+
+
     }
 
     //initialise media player to play son at current position
     public void initialiseMediaPlayer(Boolean isPlaying) {
-        uri = Uri.parse(songList.get(position).getPath());
-        mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
+
+        uri = Uri.parse(Global.Song_List.get(position).getPath());
+        Global.mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
         metaData(uri);
-        song_name.setText(songList.get(position).getTitle());
-        artist_name.setText(songList.get(position).getArtist());
-        Seek_bar.setMaxProgress(mediaPlayer.getDuration());
+        song_name.setText(Global.Song_List.get(position).getTitle());
+        artist_name.setText(Global.Song_List.get(position).getArtist());
+        Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
         Seek_bar.setProgress(0);
         duration_start.setText(formattedTime(0));
-        duration_end.setText(formattedTime(mediaPlayer.getDuration()));
+        duration_end.setText(formattedTime(Global.mediaPlayer.getDuration()));
         handler.postDelayed(runnable, 500);
 
         if (isPlaying) {
-            mediaPlayer.start();
+            Global.mediaPlayer.start();
             play_pause.setImageResource(R.drawable.pause1);
         } else {
             play_pause.setImageResource(R.drawable.play1);
         }
 
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+        Global.mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                if (mp != null && !isLoopEnabled && !isShuffleEnabled) {
+                if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
                     mp.pause();
-                } else if (mp != null && isShuffleEnabled && !isLoopEnabled) {
+                } else if (mp != null && Global.isShuffleEnabled && !Global.isLoopEnabled) {
                     mp.stop();
                     mp.release();
-                    position = getRandom(songList.size() - 1);
+                    position = getRandom(Global.Song_List.size() - 1);
                     play_pause.setImageResource(R.drawable.pause1);
                     initialiseMediaPlayer(true);
                 }
-                else if (mp != null && !isShuffleEnabled && isLoopEnabled) {
-                    Seek_bar.setProgress(0);
-                }
             }
         });
-
     }
 
     public int getPosition() {
-        if (isShuffleEnabled && !isLoopEnabled) {
-            position = getRandom(songList.size() - 1);
-        } else if (!isShuffleEnabled && !isLoopEnabled) {
-            position = ((position - 1) < 0 ? (songList.size() - 1) : (position - 1));
+        if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
+            position = getRandom(Global.Song_List.size() - 1);
+        } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
+            position = ((position - 1) < 0 ? (Global.Song_List.size() - 1) : (position - 1));
         }
         return position;
     }
@@ -199,7 +209,7 @@ public class Player extends AppCompatActivity {
     public void metaData(Uri uri) {
         final MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         retriever.setDataSource(uri.toString());
-        int durationTotal = Integer.parseInt(songList.get(position).getDuration()) / 1000;
+        int durationTotal = Integer.parseInt(Global.Song_List.get(position).getDuration()) / 1000;
         duration_end.setText(formattedTime(durationTotal));
 
         byte[] art = retriever.getEmbeddedPicture();
@@ -216,33 +226,49 @@ public class Player extends AppCompatActivity {
     }
 
     public void getIntentMethod() {
+
         position = getIntent().getIntExtra("position", -1);
-        songList = arrayList;
-        if (songList != null) {
-            play_pause.setImageResource(R.drawable.pause1);
-            uri = Uri.parse(songList.get(position).getPath());
+
+        if(position != Global.CurrentPosition){
+
+            if (Global.Song_List != null) {
+                play_pause.setImageResource(R.drawable.pause1);
+                uri = Uri.parse(Global.Song_List.get(position).getPath());
+            }
+
+            if (Global.mediaPlayer != null) {
+                Global.mediaPlayer.stop();
+                Global.mediaPlayer.release();
+            }
+
+            Global.mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
+            Global.mediaPlayer.start();
+
         }
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
+        else{
+            uri = Uri.parse(Global.Song_List.get(position).getPath());
+
+            if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
+                play_pause.setImageResource(R.drawable.play1);
+            else
+                play_pause.setImageResource(R.drawable.pause1);
         }
-        mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
-        mediaPlayer.start();
-        Seek_bar.setMaxProgress(mediaPlayer.getDuration());
+
+        Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
         Seek_bar.setProgress(0);
         metaData(uri);
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+        Global.mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                if (mp != null && !isLoopEnabled && !isShuffleEnabled) {
+                if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
                     mp.pause();
                         /*mp.release();
                         mp = null;*/
-                } else if (mp != null && isShuffleEnabled) {
+                } else if (mp != null && Global.isShuffleEnabled) {
                     mp.stop();
                     mp.release();
-                    position = getRandom(songList.size() - 1);
+                    position = getRandom(Global.Song_List.size() - 1);
                     initialiseMediaPlayer(true);
                 }
             }
@@ -277,14 +303,14 @@ public class Player extends AppCompatActivity {
     }
 
     private void prevBtnClicked() {
-        if (mediaPlayer.isPlaying()) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
+        if (Global.mediaPlayer.isPlaying()) {
+            Global.mediaPlayer.stop();
+            Global.mediaPlayer.release();
             position = getPosition();
             initialiseMediaPlayer(true);
         } else {
-            mediaPlayer.stop();
-            mediaPlayer.release();
+            Global.mediaPlayer.stop();
+            Global.mediaPlayer.release();
             position = getPosition();
             initialiseMediaPlayer(false);
         }
@@ -309,22 +335,22 @@ public class Player extends AppCompatActivity {
     }
 
     private void nextBtnClicked() {
-        if (mediaPlayer.isPlaying()) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
-            if (isShuffleEnabled && !isLoopEnabled) {
-                position = getRandom(songList.size() - 1);
-            } else if (!isShuffleEnabled && !isLoopEnabled) {
-                position = ((position + 1) % songList.size());
+        if (Global.mediaPlayer.isPlaying()) {
+            Global.mediaPlayer.stop();
+            Global.mediaPlayer.release();
+            if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
+                position = getRandom(Global.Song_List.size() - 1);
+            } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
+                position = ((position + 1) % Global.Song_List.size());
             }
             initialiseMediaPlayer(true);
         } else {
-            mediaPlayer.stop();
-            mediaPlayer.release();
-            if (isShuffleEnabled && !isLoopEnabled) {
-                position = getRandom(songList.size() - 1);
-            } else if (!isShuffleEnabled && !isLoopEnabled) {
-                position = ((position + 1) % songList.size());
+            Global.mediaPlayer.stop();
+            Global.mediaPlayer.release();
+            if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
+                position = getRandom(Global.Song_List.size() - 1);
+            } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
+                position = ((position + 1) % Global.Song_List.size());
             }
             initialiseMediaPlayer(false);
         }
@@ -355,12 +381,12 @@ public class Player extends AppCompatActivity {
     }
 
     private void playPauseBtnClicked() {
-        if (mediaPlayer.isPlaying()) {
+        if (Global.mediaPlayer.isPlaying()) {
             play_pause.setImageResource(R.drawable.play1);
-            mediaPlayer.pause();
+            Global.mediaPlayer.pause();
         } else {
             play_pause.setImageResource(R.drawable.pause1);
-            mediaPlayer.start();
+            Global.mediaPlayer.start();
             handler.postDelayed(runnable, 500);
         }
     }
@@ -368,6 +394,7 @@ public class Player extends AppCompatActivity {
     @Override
     public void finish()//animation of screen
     {
+        Global.CurrentPosition = position;
         super.finish();
         overridePendingTransition(R.anim.no_animation, R.anim.slide_down);
     }
