@@ -6,6 +6,8 @@ public class Music {
     private String artist;
     private String album;
     private String duration;
+    private boolean Personalize;
+    private String SongID;
 
     public Music(String path, String title, String artist, String album, String duration) {
         this.path = path;
@@ -13,6 +15,8 @@ public class Music {
         this.artist = artist;
         this.album = album;
         this.duration = duration;
+        this.Personalize = false;
+        this.SongID = (title.concat(artist)).replaceAll("\\s","");
     }
 
     public Music() {
@@ -57,4 +61,15 @@ public class Music {
     public void setDuration(String duration) {
         this.duration = duration;
     }
+
+    public boolean getPersonalize() {
+        return Personalize;
+    }
+
+    public void setPersonalize(boolean val) {
+        this.Personalize = val;
+    }
+
+    public String getSongID(){return this.SongID;}
+
 }

@@ -1,25 +1,59 @@
 package com.example.musicplayer;
 
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Intent;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.OnBackPressedDispatcherOwner;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.marcinmoskala.arcseekbar.ArcSeekBar;
 import com.marcinmoskala.arcseekbar.ProgressListener;
-import java.util.ArrayList;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 
 public class Player extends AppCompatActivity {
+    String URL_tobeSaved;
+    private FirebaseStorage storage;
+    Task<Uri> downloadUrl;
+    FirebaseAuth fAuth;
+    FirebaseFirestore fStore;
+    String userID;
+    boolean savedImg = false;
+    private StorageReference storageReference;
+    private Uri selectedImage;
+    public static final int GET_FROM_GALLERY = 3;
+
     TextView song_name, artist_name, duration_start, duration_end;
     ImageView album_art;
     ImageView next_btn;
@@ -29,31 +63,49 @@ public class Player extends AppCompatActivity {
     ImageView play_pause;
     ImageView heart;
     ArcSeekBar Seek_bar;
-    //static MediaPlayer Global.mediaPlayer;
     Thread playThread, prevThread, nextThread;
+    ImageView add_img_btn;
     Handler handler = new Handler();
     Uri uri;
     int position = -1;
+    String Title, Artist, SongID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.player_layout);
 
-        Global.mp_opened = true;
-        Toast.makeText(this, "mpopened status : "+ Global.mp_opened, Toast.LENGTH_SHORT).show();
-
-
         initialiseData();
 
         getIntentMethod();
-        song_name.setText(Global.Song_List.get(position).getTitle());
-        artist_name.setText(Global.Song_List.get(position).getArtist());
+
+        song_name.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
+        artist_name.setText(Global.Song_List.get(Global.CurrentPosition).getArtist());
+
+        storage = FirebaseStorage.getInstance();
+        storageReference = storage.getReference();
+        fStore = FirebaseFirestore.getInstance();
+        fAuth = FirebaseAuth.getInstance();
+        userID = fAuth.getCurrentUser().getUid();
 
         heart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 heart.setImageResource(R.drawable.heart1);
+            }
+        });
+
+        add_img_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivityForResult(new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI), GET_FROM_GALLERY);
+            }
+        });
+
+        album_art.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivityForResult(new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI), GET_FROM_GALLERY);
             }
         });
 
@@ -129,6 +181,15 @@ public class Player extends AppCompatActivity {
         play_pause = (ImageView) findViewById(R.id.play_pause);
         heart = (ImageView) findViewById(R.id.heart);
         Seek_bar = (ArcSeekBar) findViewById(R.id.arc_seek_bar);
+        add_img_btn = (ImageView) findViewById(R.id.add_image_btn);
+
+        //firebase objects
+        storage = FirebaseStorage.getInstance();
+        storageReference = storage.getReference();
+        fStore = FirebaseFirestore.getInstance();
+        fAuth = FirebaseAuth.getInstance();
+
+        userID = fAuth.getCurrentUser().getUid();
 
         if (Global.isShuffleEnabled)
             shuffle_btn.setImageResource(R.drawable.shuffle_on);
@@ -139,19 +200,17 @@ public class Player extends AppCompatActivity {
             repeat_btn.setImageResource(R.drawable.repeat_on);
         else
             repeat_btn.setImageResource(R.drawable.repeat);
-
-
-
     }
 
     //initialise media player to play son at current position
     public void initialiseMediaPlayer(Boolean isPlaying) {
 
-        uri = Uri.parse(Global.Song_List.get(position).getPath());
+        uri = Uri.parse(Global.Song_List.get(Global.CurrentPosition).getPath());
         Global.mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
         metaData(uri);
-        song_name.setText(Global.Song_List.get(position).getTitle());
-        artist_name.setText(Global.Song_List.get(position).getArtist());
+
+        song_name.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
+        artist_name.setText(Global.Song_List.get(Global.CurrentPosition).getArtist());
         Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
         Seek_bar.setProgress(0);
         duration_start.setText(formattedTime(0));
@@ -174,7 +233,7 @@ public class Player extends AppCompatActivity {
                 } else if (mp != null && Global.isShuffleEnabled && !Global.isLoopEnabled) {
                     mp.stop();
                     mp.release();
-                    position = getRandom(Global.Song_List.size() - 1);
+                    Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
                     play_pause.setImageResource(R.drawable.pause1);
                     initialiseMediaPlayer(true);
                 }
@@ -184,11 +243,11 @@ public class Player extends AppCompatActivity {
 
     public int getPosition() {
         if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
-            position = getRandom(Global.Song_List.size() - 1);
+            Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
         } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
-            position = ((position - 1) < 0 ? (Global.Song_List.size() - 1) : (position - 1));
+            Global.CurrentPosition = ((Global.CurrentPosition - 1) < 0 ? (Global.Song_List.size() - 1) : (Global.CurrentPosition - 1));
         }
-        return position;
+        return Global.CurrentPosition;
     }
 
     public String formattedTime(int CurrentPosition) {
@@ -206,22 +265,42 @@ public class Player extends AppCompatActivity {
     }
 
     //for album art
-    public void metaData(Uri uri) {
-        final MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        retriever.setDataSource(uri.toString());
-        int durationTotal = Integer.parseInt(Global.Song_List.get(position).getDuration()) / 1000;
-        duration_end.setText(formattedTime(durationTotal));
+    public void metaData(final Uri uri) {
 
-        byte[] art = retriever.getEmbeddedPicture();
+        SongID = Global.Song_List.get(Global.CurrentPosition).getSongID();
 
-        if (art != null) {
+        DocumentReference documentReference = fStore.collection("users").document(userID).collection("Songs").document(SongID);
 
-            Glide.with(getApplicationContext()).asBitmap().load(art).into(album_art);
-        } else {
+        documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot document = task.getResult();
+                    if (document.exists()) {
+                        //Toast.makeText(getApplicationContext(), "Document exists!", Toast.LENGTH_LONG).show();
+                        Glide.with(getApplicationContext()).asBitmap().load(document.get("URL")).into(album_art);
+                    }
+                    else {
+                        //Toast.makeText(getApplicationContext(), "Document does not exist!", Toast.LENGTH_LONG).show();
+                        final MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                        retriever.setDataSource(uri.toString());
+                        int durationTotal = Integer.parseInt(Global.Song_List.get(Global.CurrentPosition).getDuration()) / 1000;
+                        duration_end.setText(formattedTime(durationTotal));
 
-            Glide.with(getApplicationContext()).asBitmap().load(R.drawable.icon).into(album_art);
-        }
+                        byte[] art = retriever.getEmbeddedPicture();
 
+                        if (art != null)
+                            Glide.with(getApplicationContext()).asBitmap().load(art).into(album_art);
+                        else
+                            Glide.with(getApplicationContext()).asBitmap().load(R.drawable.icon).into(album_art);
+                    }
+                }
+                else {       //'get' task is unsuccessful
+                    Toast.makeText(getApplicationContext(), "Failed with task", Toast.LENGTH_LONG).show();
+
+                }
+            }
+        });
 
     }
 
@@ -231,9 +310,10 @@ public class Player extends AppCompatActivity {
 
         if(position != Global.CurrentPosition){
 
+            Global.CurrentPosition = position;
             if (Global.Song_List != null) {
                 play_pause.setImageResource(R.drawable.pause1);
-                uri = Uri.parse(Global.Song_List.get(position).getPath());
+                uri = Uri.parse(Global.Song_List.get(Global.CurrentPosition).getPath());
             }
 
             if (Global.mediaPlayer != null) {
@@ -246,7 +326,8 @@ public class Player extends AppCompatActivity {
 
         }
         else{
-            uri = Uri.parse(Global.Song_List.get(position).getPath());
+            Global.CurrentPosition = position;
+            uri = Uri.parse(Global.Song_List.get(Global.CurrentPosition).getPath());
 
             if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
                 play_pause.setImageResource(R.drawable.play1);
@@ -268,7 +349,7 @@ public class Player extends AppCompatActivity {
                 } else if (mp != null && Global.isShuffleEnabled) {
                     mp.stop();
                     mp.release();
-                    position = getRandom(Global.Song_List.size() - 1);
+                    Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
                     initialiseMediaPlayer(true);
                 }
             }
@@ -306,12 +387,12 @@ public class Player extends AppCompatActivity {
         if (Global.mediaPlayer.isPlaying()) {
             Global.mediaPlayer.stop();
             Global.mediaPlayer.release();
-            position = getPosition();
+            Global.CurrentPosition = getPosition();
             initialiseMediaPlayer(true);
         } else {
             Global.mediaPlayer.stop();
             Global.mediaPlayer.release();
-            position = getPosition();
+            Global.CurrentPosition = getPosition();
             initialiseMediaPlayer(false);
         }
     }
@@ -339,18 +420,18 @@ public class Player extends AppCompatActivity {
             Global.mediaPlayer.stop();
             Global.mediaPlayer.release();
             if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
-                position = getRandom(Global.Song_List.size() - 1);
+                Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
             } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
-                position = ((position + 1) % Global.Song_List.size());
+                Global.CurrentPosition = ((Global.CurrentPosition + 1) % Global.Song_List.size());
             }
             initialiseMediaPlayer(true);
         } else {
             Global.mediaPlayer.stop();
             Global.mediaPlayer.release();
             if (Global.isShuffleEnabled && !Global.isLoopEnabled) {
-                position = getRandom(Global.Song_List.size() - 1);
+                Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
             } else if (!Global.isShuffleEnabled && !Global.isLoopEnabled) {
-                position = ((position + 1) % Global.Song_List.size());
+                Global.CurrentPosition = ((Global.CurrentPosition + 1) % Global.Song_List.size());
             }
             initialiseMediaPlayer(false);
         }
@@ -392,9 +473,94 @@ public class Player extends AppCompatActivity {
     }
 
     @Override
-    public void finish()//animation of screen
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        //Detects request codes
+        if(requestCode==GET_FROM_GALLERY && resultCode == Activity.RESULT_OK) {
+            selectedImage = data.getData();
+            album_art.setImageURI(selectedImage);
+
+            uploadPicture();
+
+        }
+    }
+
+    private void uploadPicture() {
+
+        final ProgressDialog pd = new ProgressDialog(this);
+        pd.setTitle("Uploading Image...");
+        pd.show();
+        savedImg = false;
+
+        final String randomKey = UUID.randomUUID().toString();
+        StorageReference storageRef = storageReference.child("images/" + randomKey);
+
+        storageRef.putFile(selectedImage)
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        pd.dismiss();
+
+                        Toast.makeText(getApplicationContext(), "Image Uploaded.", Toast.LENGTH_LONG).show();
+
+                        savedImg = true;
+
+                        Global.Song_List.get(Global.CurrentPosition).setPersonalize(true);
+
+                        Task<Uri> task = taskSnapshot.getMetadata().getReference().getDownloadUrl();
+                        task.addOnSuccessListener(new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                String url = uri.toString();
+
+                                Title = Global.Song_List.get(Global.CurrentPosition).getTitle();
+                                Artist = Global.Song_List.get(Global.CurrentPosition).getArtist();
+                                SongID = Global.Song_List.get(Global.CurrentPosition).getSongID();
+
+                                Toast.makeText(getApplicationContext(), Global.Song_List.get(Global.CurrentPosition).getSongID(), Toast.LENGTH_LONG).show();
+
+                                final Map<String, Object> user = new HashMap<>();
+                                user.put("Title", Title);
+                                user.put("Artist", Artist);
+                                user.put("URL", url);
+
+                                DocumentReference documentReference = fStore.collection("users").document(userID).collection("Songs").document(SongID);
+                                documentReference.set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Toast.makeText(Player.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
+                            }
+
+                        });
+
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        pd.dismiss();
+                        Toast.makeText(getApplicationContext(), "Image failed to Uploaded", Toast.LENGTH_LONG).show();
+                    }
+                }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+
+            @Override
+            public void onProgress(@NonNull UploadTask.TaskSnapshot snapshot) {
+                double progressPercent = (100.00 * snapshot.getBytesTransferred() / snapshot.getTotalByteCount());
+                pd.setMessage("Progress: " + (int) progressPercent + "%");
+            }
+
+        });
+    }
+
+
+    @Override
+    public void finish() //animation of screen
     {
-        Global.CurrentPosition = position;
+        //Global.CurrentPosition = position;
         super.finish();
         overridePendingTransition(R.anim.no_animation, R.anim.slide_down);
     }

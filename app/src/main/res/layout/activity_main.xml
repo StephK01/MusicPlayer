@@ -6,20 +6,45 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#000000"
+        android:foregroundTint="#FFFFFF">
+
+        <TextView
+            android:id="@+id/log_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="5dp"
+            android:background="#000000"
+            android:text="Sign Out"
+            android:textColor="#3ABB9C"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+
     <ListView
         android:id="@+id/list_view"
         android:layout_width="match_parent"
-        android:layout_height="625dp"
-        android:layout_weight="1"/>
+        android:layout_height="448dp"
+        android:layout_weight="1" />
 
     <RelativeLayout
         android:id="@+id/musicplayer_bar"
         android:layout_width="match_parent"
-        android:layout_height="70dp">
+        android:layout_height="70dp"
+        android:visibility="visible">
 
 
         <TextView
-            android:id="@+id/textView"
+            android:id="@+id/sign_out"
             android:layout_width="330dp"
             android:layout_height="37dp"
             android:layout_weight="1"
