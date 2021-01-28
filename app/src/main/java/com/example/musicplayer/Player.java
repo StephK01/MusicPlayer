@@ -70,6 +70,8 @@ public class Player extends AppCompatActivity {
     int position = -1;
     String Title, Artist, SongID;
 
+    TextView Song;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +83,7 @@ public class Player extends AppCompatActivity {
 
         song_name.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
         artist_name.setText(Global.Song_List.get(Global.CurrentPosition).getArtist());
-
+        Song = (TextView) findViewById(R.id.song_name);
         storage = FirebaseStorage.getInstance();
         storageReference = storage.getReference();
         fStore = FirebaseFirestore.getInstance();
@@ -223,18 +225,24 @@ public class Player extends AppCompatActivity {
         } else {
             play_pause.setImageResource(R.drawable.play1);
         }
-
         Global.mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
                 if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
-                    mp.pause();
-                } else if (mp != null && Global.isShuffleEnabled && !Global.isLoopEnabled) {
+                    if (Global.CurrentPosition == (Global.Song_List.size() -1)) {
+                        Global.CurrentPosition = 0;
+                    }
+                    else {
+                        Global.CurrentPosition += 1;
+                    }
+                    mp.stop();
+                    mp.release();
+                    initialiseMediaPlayer(true);
+                } else if (mp != null && Global.isShuffleEnabled) {
                     mp.stop();
                     mp.release();
                     Global.CurrentPosition = getRandom(Global.Song_List.size() - 1);
-                    play_pause.setImageResource(R.drawable.pause1);
                     initialiseMediaPlayer(true);
                 }
             }
@@ -326,13 +334,17 @@ public class Player extends AppCompatActivity {
 
         }
         else{
-            Global.CurrentPosition = position;
             uri = Uri.parse(Global.Song_List.get(Global.CurrentPosition).getPath());
+            if(Global.mediaPlayer!=null) {
+                if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
+                    play_pause.setImageResource(R.drawable.play1);
+                else
+                    play_pause.setImageResource(R.drawable.pause1);
+            }
+            else {
+                initialiseMediaPlayer(true);
+            }
 
-            if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
-                play_pause.setImageResource(R.drawable.play1);
-            else
-                play_pause.setImageResource(R.drawable.pause1);
         }
 
         Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
@@ -343,9 +355,15 @@ public class Player extends AppCompatActivity {
             public void onCompletion(MediaPlayer mp) {
                 if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
-                    mp.pause();
-                        /*mp.release();
-                        mp = null;*/
+                    if (Global.CurrentPosition == (Global.Song_List.size() -1)) {
+                        Global.CurrentPosition = 0;
+                    }
+                    else {
+                        Global.CurrentPosition += 1;
+                    }
+                    mp.stop();
+                    mp.release();
+                    initialiseMediaPlayer(true);
                 } else if (mp != null && Global.isShuffleEnabled) {
                     mp.stop();
                     mp.release();

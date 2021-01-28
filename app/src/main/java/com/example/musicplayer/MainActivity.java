@@ -1,7 +1,10 @@
 package com.example.musicplayer;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -22,6 +25,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -34,7 +39,8 @@ public class MainActivity extends AppCompatActivity {
     TextView Song;
     TextView Artist;
     RelativeLayout bar;
-    TextView Log_Out;
+    DrawerLayout drawerLayout;
+    TextView userEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,10 +48,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         bar_play = (ImageView) findViewById(R.id.bar_play_pause);
-        Song = (TextView) findViewById(R.id.sign_out);
+        Song = (TextView) findViewById(R.id.song_name);
         Artist = (TextView) findViewById(R.id.textView2);
-        Log_Out = (TextView) findViewById(R.id.log_out);
+        userEmail = (TextView) findViewById(R.id.user_email);
         bar = (RelativeLayout) findViewById(R.id.musicplayer_bar);
+        drawerLayout = findViewById(R.id.drawer_layout);
+
+        userEmail.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
 
         if(!Global.mp_opened)
          bar.setVisibility(View.GONE);
@@ -85,17 +94,42 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
 
-        Log_Out.setOnClickListener(new OnClickListener() {
+    public void ClickMenu(View view) {
+        openDrawer(drawerLayout);
+    }
+
+    private static void openDrawer(DrawerLayout drawerLayout) {
+        drawerLayout.openDrawer(GravityCompat.START);
+    }
+
+    public void ClickLogout(View view) {
+        logout(this);
+    }
+
+    private void logout(final Activity activity) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle("Logout");
+        builder.setMessage("Are you sure you want to logout?");
+        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                
+            public void onClick(DialogInterface dialog, int which) {
                 FirebaseAuth.getInstance().signOut();
+                Global.Song_List.clear();
                 startActivity(new Intent(MainActivity.this,Login.class));
                 finish();
+                activity.finishAffinity();
+                System.exit(0);
             }
         });
-
+        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
     }
 
     @Override
