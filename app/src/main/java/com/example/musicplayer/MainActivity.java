@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -28,7 +29,10 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.google.api.Authentication;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.rpc.context.AttributeContext;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         bar = (RelativeLayout) findViewById(R.id.musicplayer_bar);
         drawerLayout = findViewById(R.id.drawer_layout);
 
-        userEmail.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
+        userEmail.setText(Global.fAuth.getCurrentUser().getEmail());
 
         if(!Global.mp_opened)
          bar.setVisibility(View.GONE);
@@ -115,12 +119,12 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                FirebaseAuth.getInstance().signOut();
+                Global.fAuth.signOut();
+                Log.e("user-m:", String.valueOf(Global.fAuth.getCurrentUser()));
                 Global.Song_List.clear();
-                startActivity(new Intent(MainActivity.this,Login.class));
                 finish();
-                activity.finishAffinity();
-                System.exit(0);
+                startActivity(new Intent(MainActivity.this, Login.class));
+
             }
         });
         builder.setNegativeButton("No", new DialogInterface.OnClickListener() {

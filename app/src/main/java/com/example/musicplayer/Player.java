@@ -46,7 +46,6 @@ public class Player extends AppCompatActivity {
     String URL_tobeSaved;
     private FirebaseStorage storage;
     Task<Uri> downloadUrl;
-    FirebaseAuth fAuth;
     FirebaseFirestore fStore;
     String userID;
     boolean savedImg = false;
@@ -87,8 +86,7 @@ public class Player extends AppCompatActivity {
         storage = FirebaseStorage.getInstance();
         storageReference = storage.getReference();
         fStore = FirebaseFirestore.getInstance();
-        fAuth = FirebaseAuth.getInstance();
-        userID = fAuth.getCurrentUser().getUid();
+        userID = Global.fAuth.getCurrentUser().getUid();
 
         heart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -189,9 +187,9 @@ public class Player extends AppCompatActivity {
         storage = FirebaseStorage.getInstance();
         storageReference = storage.getReference();
         fStore = FirebaseFirestore.getInstance();
-        fAuth = FirebaseAuth.getInstance();
+        Global.fAuth = FirebaseAuth.getInstance();
 
-        userID = fAuth.getCurrentUser().getUid();
+        userID = Global.fAuth.getCurrentUser().getUid();
 
         if (Global.isShuffleEnabled)
             shuffle_btn.setImageResource(R.drawable.shuffle_on);
