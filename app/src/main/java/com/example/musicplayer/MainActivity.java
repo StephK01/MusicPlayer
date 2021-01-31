@@ -120,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Global.fAuth.signOut();
-                Log.e("user-m:", String.valueOf(Global.fAuth.getCurrentUser()));
                 Global.Song_List.clear();
                 finish();
                 startActivity(new Intent(MainActivity.this, Login.class));
