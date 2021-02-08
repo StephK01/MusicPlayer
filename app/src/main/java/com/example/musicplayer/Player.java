@@ -10,14 +10,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.OnBackPressedCallback;
-import androidx.activity.OnBackPressedDispatcherOwner;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -26,15 +25,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-import com.marcinmoskala.arcseekbar.ArcSeekBar;
-import com.marcinmoskala.arcseekbar.ProgressListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,9 +38,7 @@ import java.util.UUID;
 
 
 public class Player extends AppCompatActivity {
-    String URL_tobeSaved;
     private FirebaseStorage storage;
-    Task<Uri> downloadUrl;
     FirebaseFirestore fStore;
     String userID;
     boolean savedImg = false;
@@ -61,7 +54,7 @@ public class Player extends AppCompatActivity {
     ImageView repeat_btn;
     ImageView play_pause;
     ImageView heart;
-    ArcSeekBar Seek_bar;
+    SeekBar Seek_bar;
     Thread playThread, prevThread, nextThread;
     ImageView add_img_btn;
     Handler handler = new Handler();
@@ -141,25 +134,31 @@ public class Player extends AppCompatActivity {
             }
         });
 
+        Seek_bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean fromUser) {
+                if (Global.mediaPlayer != null && fromUser) {
+                    Global.mediaPlayer.seekTo(i);
+                }
+            }
 
-        Seek_bar.setOnProgressChangedListener(new ProgressListener() {
-                                                  @Override
-                                                  public void invoke(int progress) {
-                                                      if (Global.mediaPlayer != null) {
-                                                          Global.mediaPlayer.seekTo(progress);
-                                                      }
-                                                  }
-                                              }
-        );
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
 
-        handler.postDelayed(runnable, 100);
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     Runnable runnable = new Runnable() {
         @Override
         public void run() {
             if (Global.mediaPlayer.isPlaying()) {
-                //Seek_bar.setProgress(Global.mediaPlayer.getCurrentPosition());
+                Seek_bar.setProgress(Global.mediaPlayer.getCurrentPosition());
                 handler.postDelayed(this, 500);
                 duration_start.setText(formattedTime(Global.mediaPlayer.getCurrentPosition()));
                 duration_end.setText(formattedTime(Global.mediaPlayer.getDuration() - Global.mediaPlayer.getCurrentPosition()));
@@ -180,7 +179,7 @@ public class Player extends AppCompatActivity {
         repeat_btn = (ImageView) findViewById(R.id.repeat_btn);
         play_pause = (ImageView) findViewById(R.id.play_pause);
         heart = (ImageView) findViewById(R.id.heart);
-        Seek_bar = (ArcSeekBar) findViewById(R.id.arc_seek_bar);
+        Seek_bar = (SeekBar) findViewById(R.id.arc_seek_bar);
         add_img_btn = (ImageView) findViewById(R.id.add_image_btn);
 
         //firebase objects
@@ -211,7 +210,7 @@ public class Player extends AppCompatActivity {
 
         song_name.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
         artist_name.setText(Global.Song_List.get(Global.CurrentPosition).getArtist());
-        Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
+        Seek_bar.setMax(Global.mediaPlayer.getDuration());
         Seek_bar.setProgress(0);
         duration_start.setText(formattedTime(0));
         duration_end.setText(formattedTime(Global.mediaPlayer.getDuration()));
@@ -228,10 +227,9 @@ public class Player extends AppCompatActivity {
             public void onCompletion(MediaPlayer mp) {
                 if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
-                    if (Global.CurrentPosition == (Global.Song_List.size() -1)) {
+                    if (Global.CurrentPosition == (Global.Song_List.size() - 1)) {
                         Global.CurrentPosition = 0;
-                    }
-                    else {
+                    } else {
                         Global.CurrentPosition += 1;
                     }
                     mp.stop();
@@ -285,8 +283,7 @@ public class Player extends AppCompatActivity {
                     if (document.exists()) {
                         //Toast.makeText(getApplicationContext(), "Document exists!", Toast.LENGTH_LONG).show();
                         Glide.with(getApplicationContext()).asBitmap().load(document.get("URL")).into(album_art);
-                    }
-                    else {
+                    } else {
                         //Toast.makeText(getApplicationContext(), "Document does not exist!", Toast.LENGTH_LONG).show();
                         final MediaMetadataRetriever retriever = new MediaMetadataRetriever();
                         retriever.setDataSource(uri.toString());
@@ -300,8 +297,7 @@ public class Player extends AppCompatActivity {
                         else
                             Glide.with(getApplicationContext()).asBitmap().load(R.drawable.icon).into(album_art);
                     }
-                }
-                else {       //'get' task is unsuccessful
+                } else {       //'get' task is unsuccessful
                     Toast.makeText(getApplicationContext(), "Failed with task", Toast.LENGTH_LONG).show();
 
                 }
@@ -314,7 +310,7 @@ public class Player extends AppCompatActivity {
 
         position = getIntent().getIntExtra("position", -1);
 
-        if(position != Global.CurrentPosition){
+        if (position != Global.CurrentPosition) {
 
             Global.CurrentPosition = position;
             if (Global.Song_List != null) {
@@ -329,23 +325,22 @@ public class Player extends AppCompatActivity {
 
             Global.mediaPlayer = MediaPlayer.create(getApplicationContext(), uri);
             Global.mediaPlayer.start();
+            handler.postDelayed(runnable, 500);
 
-        }
-        else{
+        } else {
             uri = Uri.parse(Global.Song_List.get(Global.CurrentPosition).getPath());
-            if(Global.mediaPlayer!=null) {
-                if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
+            if (Global.mediaPlayer != null) {
+                if (!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
                     play_pause.setImageResource(R.drawable.play1);
                 else
                     play_pause.setImageResource(R.drawable.pause1);
-            }
-            else {
+            } else {
                 initialiseMediaPlayer(true);
             }
 
         }
 
-        Seek_bar.setMaxProgress(Global.mediaPlayer.getDuration());
+        Seek_bar.setMax(Global.mediaPlayer.getDuration());
         Seek_bar.setProgress(0);
         metaData(uri);
         Global.mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -353,10 +348,9 @@ public class Player extends AppCompatActivity {
             public void onCompletion(MediaPlayer mp) {
                 if (mp != null && !Global.isLoopEnabled && !Global.isShuffleEnabled) {
                     play_pause.setImageResource(R.drawable.play1);
-                    if (Global.CurrentPosition == (Global.Song_List.size() -1)) {
+                    if (Global.CurrentPosition == (Global.Song_List.size() - 1)) {
                         Global.CurrentPosition = 0;
-                    }
-                    else {
+                    } else {
                         Global.CurrentPosition += 1;
                     }
                     mp.stop();
@@ -493,7 +487,7 @@ public class Player extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         //Detects request codes
-        if(requestCode==GET_FROM_GALLERY && resultCode == Activity.RESULT_OK) {
+        if (requestCode == GET_FROM_GALLERY && resultCode == Activity.RESULT_OK) {
             selectedImage = data.getData();
             album_art.setImageURI(selectedImage);
 
