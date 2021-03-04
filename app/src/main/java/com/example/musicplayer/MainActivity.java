@@ -36,7 +36,7 @@ import com.google.rpc.context.AttributeContext;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static  final int MY_PERMISSION_REQUEST = 1;
+    private static final int MY_PERMISSION_REQUEST = 1;
     MusicAdapter adapter;
     ListView listView;
     ImageView bar_play;
@@ -60,26 +60,24 @@ public class MainActivity extends AppCompatActivity {
 
         userEmail.setText(Global.fAuth.getCurrentUser().getEmail());
 
-        if(!Global.mp_opened)
-         bar.setVisibility(View.GONE);
+        if (!Global.mp_opened)
+            bar.setVisibility(View.GONE);
 
-        if(ContextCompat.checkSelfPermission(MainActivity.this,
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[] {Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSION_REQUEST) ;
-        }
-        else {
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSION_REQUEST);
+        } else {
             doStuff();
         }
 
         bar_play.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1) {         //media player is paused
+                if (!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1) {         //media player is paused
                     Global.mediaPlayer.start();
                     bar_play.setImageResource(R.drawable.pause1);
-                }
-                else{
+                } else {
                     Global.mediaPlayer.pause();
                     bar_play.setImageResource(R.drawable.play1);
                 }
@@ -90,11 +88,11 @@ public class MainActivity extends AppCompatActivity {
         bar.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent=new Intent(MainActivity.this, Player.class);
-                intent.putExtra("position",Global.CurrentPosition);
+                Intent intent = new Intent(MainActivity.this, Player.class);
+                intent.putExtra("position", Global.CurrentPosition);
                 startActivity(intent);
 
-                overridePendingTransition(R.anim.slide_up,R.anim.no_animation);
+                overridePendingTransition(R.anim.slide_up, R.anim.no_animation);
 
             }
         });
@@ -141,27 +139,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void doStuff() {
-        listView = (ListView)findViewById(R.id.list_view);
+        listView = (ListView) findViewById(R.id.list_view);
         getMusic();
-        adapter = new MusicAdapter(this,Global.Song_List);
+        adapter = new MusicAdapter(this, Global.Song_List);
         listView.setAdapter(adapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //opens music player
+                                            @Override
+                                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                                //opens music player
 
-                Intent intent = new Intent(MainActivity.this, Player.class);
-                intent.putExtra("position",position);
-                Global.mp_opened = true;
-                startActivity(intent);
+                                                Intent intent = new Intent(MainActivity.this, Player.class);
+                                                intent.putExtra("position", position);
+                                                Global.mp_opened = true;
+                                                startActivity(intent);
 
-                overridePendingTransition(R.anim.slide_up,R.anim.no_animation);
-                };
+                                                overridePendingTransition(R.anim.slide_up, R.anim.no_animation);
+                                            }
+
+                                            ;
 
 
-        }
-    );
+                                        }
+        );
 
 
     }
@@ -184,14 +184,14 @@ public class MainActivity extends AppCompatActivity {
                 String currentAlbum = songCursor.getString(songAlbum);
                 String currentData = songCursor.getString(songData);
                 String currentDuration = songCursor.getString(songDuration);
-                Music music = new Music(currentData,currentTitle,currentArtist,currentAlbum,currentDuration );
+                Music music = new Music(currentData, currentTitle, currentArtist, currentAlbum, currentDuration);
 
                 Global.Song_List.add(music);
-            }while (songCursor.moveToNext());
+            } while (songCursor.moveToNext());
         }
     }
 
-    public void onRequestPermissionsResult(int requestCode, String [] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == MY_PERMISSION_REQUEST) {
             if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 if (ContextCompat.checkSelfPermission(MainActivity.this,
@@ -210,9 +210,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        if(Global.mp_opened){
-            if(Global.Song_List.get(Global.CurrentPosition).getTitle().length()>33)
-                Song.setText(Global.Song_List.get(Global.CurrentPosition).getTitle().substring(0,33)+ "...");
+        if (Global.mp_opened) {
+            if (Global.Song_List.get(Global.CurrentPosition).getTitle().length() > 33)
+                Song.setText(Global.Song_List.get(Global.CurrentPosition).getTitle().substring(0, 33) + "...");
             else
                 Song.setText(Global.Song_List.get(Global.CurrentPosition).getTitle());
 
@@ -221,13 +221,12 @@ public class MainActivity extends AppCompatActivity {
             bar.setVisibility(View.VISIBLE);
 
 
-            if(!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
+            if (!Global.mediaPlayer.isPlaying() && Global.mediaPlayer.getCurrentPosition() > 1)          //media player is paused
                 bar_play.setImageResource(R.drawable.play1);
             else
                 bar_play.setImageResource(R.drawable.pause1);
 
-        }
-        else
+        } else
             bar.setVisibility(View.GONE);
     }
 }
