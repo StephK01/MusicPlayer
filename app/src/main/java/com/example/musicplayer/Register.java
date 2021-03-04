@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -32,7 +33,6 @@ public class Register extends AppCompatActivity {
     Button RegisterBtn;
     TextView GotoLogin;
     ProgressBar pb;
-    FirebaseAuth fAuth;
     FirebaseFirestore fStore;
     String userID;
 
@@ -48,11 +48,10 @@ public class Register extends AppCompatActivity {
         GotoLogin = (TextView) findViewById(R.id.already_registered);
         RegisterBtn = (Button) findViewById(R.id.login_btn);
 
-        fAuth = FirebaseAuth.getInstance();
         fStore = FirebaseFirestore.getInstance();
         pb = findViewById(R.id.progressBar);
-
-        if(fAuth.getCurrentUser()!=null) {
+        Log.e("user-r:", String.valueOf(Global.fAuth.getCurrentUser()));
+        if(Global.fAuth.getCurrentUser()!=null) {
             startActivity(new Intent(Register.this, MainActivity.class));
             finish();
         }
@@ -86,13 +85,13 @@ public class Register extends AppCompatActivity {
                 pb.setVisibility(View.VISIBLE);
 
                 try{
-                fAuth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                Global.fAuth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
 
                         if(task.isSuccessful()){
                             Toast.makeText(Register.this,"User added successfully!",Toast.LENGTH_SHORT).show();
-                            userID=fAuth.getCurrentUser().getUid();
+                            userID=Global.fAuth.getCurrentUser().getUid();
 
                             DocumentReference documentReference = fStore.collection("users").document(userID);
                             Map<String,Object> user = new HashMap<>();
